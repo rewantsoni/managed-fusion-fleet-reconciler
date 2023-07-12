@@ -1,0 +1,18 @@
+---
+name: image-builder
+
+on:
+  pull_request:
+    branches: ['*']
+
+jobs:
+  docker-build:
+    name: docker-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go environment
+        uses: red-hat-storage/managed-fusion-agent@main
+      - name: Build operator docker image
+        run: make docker-build
