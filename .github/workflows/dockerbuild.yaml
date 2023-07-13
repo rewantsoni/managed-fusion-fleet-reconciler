@@ -3,7 +3,7 @@ name: image-builder
 
 on:
   pull_request:
-    branches: ['*']
+    branches: ["*"]
 
 jobs:
   docker-build:
@@ -15,4 +15,4 @@ jobs:
       - name: Set up Go environment
         uses: red-hat-storage/managed-fusion-fleet-reconciler@main
       - name: Build operator docker image
-        run: make container-build
+        run: make docker-build
