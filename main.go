@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/red-hat-storage/managed-fusion-fleet-reconciler/pkg/cloud"
+	"github.com/red-hat-storage/managed-fusion-fleet-reconciler/pkg/types"
 	"log"
 	"os"
 	"os/signal"
@@ -11,6 +14,8 @@ import (
 	"github.com/red-hat-storage/managed-fusion-fleet-reconciler/pkg/db"
 	"github.com/red-hat-storage/managed-fusion-fleet-reconciler/pkg/forman"
 	"github.com/red-hat-storage/managed-fusion-fleet-reconciler/pkg/reconciler"
+
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 )
@@ -27,6 +32,12 @@ type config struct {
 	Reconcile struct {
 		Concurrency int `yaml:"concurrency"`
 	} `yaml:"reconcile"`
+	AWS struct {
+		AccessKey           string
+		SecretKey           string
+		Region              string
+		ProviderTemplateURL string
+	}
 }
 
 func loadAndValidateConfig(filePath string) (*config, error) {
@@ -97,6 +108,18 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 	defer dbClient.Close(ctx)
+
+	awsconf, err := awsConfig.LoadDefaultConfig(context.TODO(),
+		awsConfig.WithRegion(conf.AWS.Region),
+		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(conf.AWS.AccessKey, conf.AWS.SecretKey, "")),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	awsProvider, err := cloud.NewCloudProvider(types.AWSCloudProvider, logger)
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
 
 	reqChan := forman.GoForman(logger, conf.Reconcile.Concurrency,
 		func(req forman.Request) forman.Result {
